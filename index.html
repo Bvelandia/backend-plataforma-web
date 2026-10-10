@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Autenticación con Google - FastAPI</title>
+    <!-- SDK Oficial de Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #f4f6f9; margin: 0; }
+        .card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        h2 { color: #1e293b; margin-bottom: 0.5rem; }
+        p { color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem; }
+        .btn-container { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+        #status-badge { padding: 0.75rem; border-radius: 8px; font-weight: 600; display: none; margin-bottom: 1rem; font-size: 0.9rem; }
+        #response-container { text-align: left; background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; overflow-x: auto; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Plataforma de Aprendizaje</h2>
+    <p>Inicia sesión con tu cuenta de Google para validar la API</p>
+
+    <!-- Configuración e inicialización del botón de Google -->
+    <div class="btn-container">
+        <div id="g_id_onload"
+             data-client_id="933717029060-loopqplucv9thhg8prrfm7sad0r9nbpp.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
+    </div>
+
+    <div id="status-badge"></div>
+    <pre id="response-container"></pre>
+</div>
+
+<script>
+    async function handleCredentialResponse(response) {
+        console.log("ID Token de Google recibido:", response.credential);
+        
+        const badge = document.getElementById("status-badge");
+        const container = document.getElementById("response-container");
+        
+        badge.style.display = "block";
+        badge.style.background = "#e0f2fe";
+        badge.style.color = "#0369a1";
+        badge.innerText = "⏳ Validando token con FastAPI...";
+
+        try {
+            // Enviar el ID Token de Google al endpoint de Login de nuestro Backend
+            const res = await fetch("http://127.0.0.1:8000/api/v1/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: response.credential })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                badge.style.background = "#dcfce7";
+                badge.style.color = "#15803d";
+                badge.innerText = "✅ ¡Autenticación Exitosa! Usuario registrado/logueado";
+                container.style.display = "block";
+                container.textContent = JSON.stringify(data, null, 2);
+            } else {
+                badge.style.background = "#fee2e2";
+                badge.style.color = "#b91c1c";
+                badge.innerText = "❌ Error en el Backend (" + res.status + ")";
+                container.style.display = "block";
+                container.textContent = JSON.stringify(data, null, 2);
+            }
+        } catch (error) {
+            badge.style.background = "#fee2e2";
+            badge.style.color = "#b91c1c";
+            badge.innerText = "❌ No se pudo conectar con el backend (127.0.0.1:8000)";
+            console.error("Error de conexión:", error);
+        }
+    }
+</script>
+
+</body>
+</html>
